@@ -38,6 +38,43 @@ PYTHONPATH.
 
 TODO Create GitHub Clang branch with all Python changes applied.
 
+Technical Overview
+==================
+
+Clanalyze provides a basic observer framework for entities (i.e. Python classes)
+wishing to react to events/entities in parsed C-family source code.
+
+The general usage looks something like the following:
+
+# Create a clanalyze.parser.Parser() instance
+# Register observers with the parser
+# Parse source code using Parser.parse()
+# (Observers get called for observed events, perform side-effects)
+# Profit
+
+Writing Observers
+-----------------
+
+To do something useful with Clanalyze, you'll want to write an observer.
+Writing an observer is as simple as creating a Python class that uses one
+of the built-in abstract observer base classes as its parent.
+
+You have the following choices for observers:
+
+* DefinitionObserver - Consumes high-level entity definitions, such as classes,
+  structs, and functions which are derived from the AST. Basically, Clanalyze
+  takes the low-level AST cursor stream and converts it into friendly Python
+  objects.  This is a real value-add of Clanalyze, as it saves you from having to
+  reimplement low-level logic interacting with the Clang parser.
+
+* CursorObserver - Consumes raw Clang AST cursor stream. This is very low-level
+  and very close to the Clang API. If you are using this API, Clanalyze doesn't
+  really provide much incremental benefit over consuming the Python Clang API
+  directly.
+
+When writing observers, it is important to conform to the API they have
+provided. See the documentation in the base classes for details.
+
 Licensing
 =========
 
