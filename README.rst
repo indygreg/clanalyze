@@ -29,6 +29,7 @@ functionality to the Clang Python bindings. The state of those changes is
 as follows:
 
 * Support for C++ access specifiers - Patch not yet submitted.
+* Support for token access - Patch not yet submitted.
 
 Until all the above changes are merged into Clang's source tree and released,
 you probably don't have them available on your machine. Fortunately, the
@@ -36,7 +37,11 @@ Clang Python bindings are located in a self-contained .py file. So, all you
 need to do is fetch an updated copy of that file and make it available in your
 PYTHONPATH.
 
-TODO Create GitHub Clang branch with all Python changes applied.
+The author of Clanalyze maintains a branch with all pending Clang Python
+binding changes at https://github.com/indygreg/clang/tree/python_features.
+The Python file you want can be downloaded directly from:
+
+https://raw.github.com/indygreg/clang/python_features/bindings/python/clang/cindex.py
 
 Technical Overview
 ==================
