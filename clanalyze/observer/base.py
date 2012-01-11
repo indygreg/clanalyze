@@ -2,6 +2,31 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+class TokenObserver(object):
+    """Base class for observers handling the token stream.
+
+    These observers consume the tokenized source code before it is turned
+    into an AST.
+
+    This class is useful for accessing details lost during the translation to
+    an AST, such as the presence and locations of braces, comments, and raw
+    identifiers.
+
+    TODO support filtering
+    """
+
+    def process_token(self, token):
+        """Handler called when an individual token is processed.
+
+        This method must be implemented by child classes. It is called
+        by the parser for every token present in the original translation unit.
+
+        token -- wrapper.Token instance of the token to be processed. The
+            instance contains references to the original translation unit and
+            Parser the token was derived from.
+        """
+        raise Exception('process_token must be implemented.')
+
 class CursorObserver(object):
     """Base class for observers handling the raw cursor stream from the parser.
 
@@ -27,7 +52,7 @@ class CursorObserver(object):
     def __init__(self):
         pass
 
-    def process_cursor(self, cursor, tu, parser):
+    def process_cursor(self, cursor):
         """Handler called when an individual cursor is processed.
 
         This method must be implemented by child classes. It is called by the

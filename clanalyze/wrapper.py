@@ -108,3 +108,26 @@ class Cursor(object):
         print >>fh, '    Array size:    ', t.get_array_size()
 
         print >>fh, '  # Children:   ', len(list(self.get_children()))
+
+class Token(object):
+    """Wrapper around Clang's Token class."""
+
+    __slots__ = (
+        '_wrapped',
+        'tu',
+        'parser'
+    )
+
+    def __init__(self, token):
+        self._wrapped = token
+        self.tu = None
+        self.parser = None
+
+    def __getattr__(self, name):
+        return getattr(self._wrapped, name)
+
+    def __setattr__(self, name, value):
+        if name in ('_wrapped', 'tu', 'parser'):
+            object.__setattr__(self, name, value)
+
+        object.__setattr__(self._wrapped, name, value)

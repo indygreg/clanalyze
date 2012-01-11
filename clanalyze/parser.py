@@ -5,7 +5,7 @@
 # This file contains code for parsing C language files and interfacing with
 # the Clang Python bindings.
 
-from .observer.base import CursorObserver, DefinitionObserver
+from .observer.base import CursorObserver, DefinitionObserver, TokenObserver
 from .observer.cursor.declaration import ClassExpander
 from . import wrapper
 
@@ -26,6 +26,7 @@ class Parser(object):
     __slots__ = (
         '_cursor_observers',
         '_definition_observers',
+        '_token_observers',
     )
 
     EXPAND_CURSORS = set([
@@ -40,6 +41,7 @@ class Parser(object):
         # this file.
         self._cursor_observers = [ClassExpander()]
         self._definition_observers = []
+        self._token_observers = []
 
     def add_observer(self, obs):
         """Add an observer to the parser instance.
@@ -55,6 +57,10 @@ class Parser(object):
             self._definition_observers.append(obs)
             added = True
 
+        if isinstance(obs, TokenObserver):
+            self._token_observers.append(obs)
+            added = True
+
         if not added:
             raise Exception('Observer instance is not a recognized type: %s' %
                     added)
@@ -64,6 +70,7 @@ class Parser(object):
         self._cursor_observers = [o for o in self._cursor_observers if o != obs]
         self._definition_observers = [o for o in self._definition_observers if
                 o != obs]
+        self._token_observers = [o for o in self._token_observers if o != obs]
 
     def parse(self, filename=None, fh=None, content=None, clang_args=None):
         """Parse an entity and send results to observers.
@@ -111,7 +118,6 @@ class Parser(object):
             raise Exception('Multiple sources given to parse().')
 
         index = clang.cindex.Index.create()
-        # TODO preserve source filename.
         tu = index.parse(input_filename, args=args,
                 unsaved_files=[(input_filename, ''.join(lines))])
 
@@ -122,6 +128,14 @@ class Parser(object):
         if not tu:
             raise Exception('Unknown error in Clang when parsing.')
 
+        # Now that we have a translation unit, we can inform others about it
+        # so they can do something with it.
+
+        # We start with the highest-level view and work our way down. For
+        # consumers interested in multiple layers, they can staple on
+        # lower-level details as time progresses.
+
+        # Cursors iterate over the AST.
         assert(tu.cursor.kind == clang.cindex.CursorKind.TRANSLATION_UNIT)
         for child, level in self.emit_toplevel_cursors(tu.cursor, 0):
             cursor = wrapper.Cursor(child)
@@ -134,6 +148,21 @@ class Parser(object):
                 if (observer.PROCESS_KINDS is True or kind in
                 observer.PROCESS_KINDS):
                     observer.process_cursor(cursor)
+
+        # Tokens constituting the raw source code.
+        # TODO the range generation doesn't work for all method arguments.
+        source_file = clang.cindex.File.from_name(tu, input_filename)
+        start = clang.cindex.SourceLocation.from_position(tu, source_file, 1, 1)
+        end = clang.cindex.SourceLocation.from_position(tu, source_file,
+                len(lines), len(lines[len(lines)-1]))
+
+        for token in tu.get_tokens(start_location=start, end_location=end):
+            wrapped = wrapper.Token(token)
+            wrapped.tu = tu
+            wrapped.parser = self
+
+            for observer in self._token_observers:
+                observer.process_token(wrapped)
 
     def emit_toplevel_cursors(self, cursor, level=0):
         """Generator to descend into cursors."""
